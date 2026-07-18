@@ -49,9 +49,10 @@
     :documentation "The argv list starting a process that calls WORKER-MAIN.")
    (log-pathname
     :initarg :log-pathname
-    :reader worker--log-pathname
-    :type pathname
-    :documentation "The private file receiving helper diagnostics.")
+    :initform nil
+    :accessor worker--log-pathname
+    :type (or null pathname)
+    :documentation "The private file receiving helper diagnostics, or NIL before configuration.")
    (start-timeout-seconds
     :initarg :start-timeout-seconds
     :reader worker--start-timeout-seconds
@@ -98,8 +99,8 @@
                command
                (every #'stringp command))
     (clifff--fail ':worker "COMMAND must be a non-empty list of strings."))
-  (unless (pathnamep log-pathname)
-    (clifff--fail ':worker "LOG-PATHNAME must be a pathname."))
+  (unless (or (null log-pathname) (pathnamep log-pathname))
+    (clifff--fail ':worker "LOG-PATHNAME must be NIL or a pathname."))
   (unless (typep start-timeout-seconds '(integer 1))
     (clifff--fail ':worker "START-TIMEOUT-SECONDS must be positive."))
   (unless (typep request-timeout-seconds '(integer 1))
@@ -162,6 +163,9 @@
 (defun worker--start-unlocked (worker)
   "Start WORKER and validate its protocol handshake."
   (let ((log-pathname (worker--log-pathname worker)))
+    (unless log-pathname
+      (clifff--fail ':worker
+                    "The worker needs a diagnostic LOG-PATHNAME before startup."))
     (ensure-directories-exist log-pathname)
     (with-open-file (stream log-pathname
                             :direction :output
@@ -246,7 +250,8 @@
   nil)
 
 (defun worker-request
-    (worker &key library-path base-path cache-directory operation arguments)
+    (worker &key library-path base-path cache-directory log-pathname
+      operation arguments)
   "Run one search, resetting fff databases before one transport retry."
   (unless (and (pathnamep library-path) (probe-file library-path))
     (clifff--fail ':worker "LIBRARY-PATH must name the fff C library."
@@ -256,14 +261,20 @@
                   :pathname base-path))
   (unless (pathnamep cache-directory)
     (clifff--fail ':worker "CACHE-DIRECTORY must be a pathname."))
+  (unless (pathnamep log-pathname)
+    (clifff--fail ':worker "LOG-PATHNAME must be a pathname."))
   (unless (keywordp operation)
     (clifff--fail ':worker "OPERATION must be a keyword."))
   (unless (listp arguments)
     (clifff--fail ':worker "ARGUMENTS must be a list."))
   (let ((library-path (truename library-path))
         (base-path (uiop:ensure-directory-pathname (truename base-path)))
-        (cache-directory (uiop:ensure-directory-pathname cache-directory)))
+        (cache-directory (uiop:ensure-directory-pathname cache-directory))
+        (log-pathname log-pathname))
     (with-lock-held ((worker--lock worker))
+      (unless (equal log-pathname (worker--log-pathname worker))
+        (worker--close-unlocked worker)
+        (setf (worker--log-pathname worker) log-pathname))
       (loop for attempt from 1 to 2
             do (handler-case
                    (multiple-value-bind (content remote-error)

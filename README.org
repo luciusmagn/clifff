@@ -45,6 +45,10 @@ The parent restarts a dead helper once and resets its private fff databases
 before retrying. This process boundary protects the parent from accidental
 native failures. It is not a security sandbox.
 
+The request supplies its workspace, cache, fff library and diagnostic log
+paths. Changing the log destination restarts the helper so distinct application
+configurations do not share diagnostics accidentally.
+
 * Tests
 
 #+BEGIN_SRC lisp
