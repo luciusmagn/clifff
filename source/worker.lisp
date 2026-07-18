@@ -275,6 +275,10 @@
       (unless (equal log-pathname (worker--log-pathname worker))
         (worker--close-unlocked worker)
         (setf (worker--log-pathname worker) log-pathname))
+      (when (and (worker-process worker)
+                 (not (worker--alive-p worker)))
+        (worker--close-unlocked worker)
+        (worker--reset-databases cache-directory))
       (loop for attempt from 1 to 2
             do (handler-case
                    (multiple-value-bind (content remote-error)
