@@ -356,8 +356,10 @@
     (subseq text 0 (min (length text) 2000))))
 
 (defun worker-main (&optional (protocol-output *standard-output*))
-  "Serve fff requests on standard input and PROTOCOL-OUTPUT."
+  "Serve fff requests on standard input and PROTOCOL-OUTPUT.
+Native helpers run with masked floating-point traps as C and Rust expect."
   #+sbcl (sb-ext:disable-debugger)
+  #+sbcl (sb-int:set-floating-point-modes :traps nil)
   (let ((engine nil)
         (signature nil)
         (*read-eval* nil))
