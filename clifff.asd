@@ -1,6 +1,7 @@
 (asdf:defsystem #:clifff
   :description "Common Lisp bindings and a supervised worker for fff"
   :author "Lukáš Hozda"
+  :license "ISC"
   :version "0.1.0"
   :serial t
   :depends-on (#:bordeaux-threads
