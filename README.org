@@ -56,3 +56,5 @@ configurations do not share diagnostics accidentally.
 #+END_SRC
 
 Set =CLIFFF_LIBRARY= to exercise the native integration tests.
+
+Part of the [[https://www.lambda-symbolics.com/libraries][Lambda Symbolics library shelf]].
